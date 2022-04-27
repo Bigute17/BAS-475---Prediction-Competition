@@ -5,6 +5,10 @@ library(shinyWidgets)
 library(plotly)
 library(fpp3)
 
+CREDIT <- read.csv("credit.csv")
+
+
+
 
 ui <- fluidPage(
   
