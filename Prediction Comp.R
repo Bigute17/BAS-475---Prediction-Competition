@@ -15,7 +15,7 @@ ui <- dashboardPage(
   dashboardHeader(title = "Galactic Credits"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem('Plotted Series and Seasonality', tabName = 'AutoSeasonDecomp', icon = icon('dashboard')),
+      menuItem('Plotted Series and Seasonality', tabName = 'AutoSeasonDecomp', icon = icon("dashboard")),
       menuItem('First Model', tabName = 'FirstModel', icon = icon('th'))
     )
   ),
@@ -24,17 +24,31 @@ ui <- dashboardPage(
       # First tab content
       tabItem(tabName = "AutoSeasonDecomp",
               fluidRow(
-                h2("AutoSeasonDecomp tab content")
+                h2("The Empire's Monthly Income and the Seasonality of Galactic Credits"),
+                plotOutput("fullseries"),
+                plotOutput("season")
               )
       ),
       # Second tab content
       tabItem(tabName = "FirstModel",
-              h2("FirstModel tab content")
+              h2("First Model")
       )
     )
   )
 )
 
-server <- function(input, output) { }
+server <- function(input, output) { 
+output$fullseries <- renderPlot({
+  CREDIT %>%
+    gg_tsdisplay(credit_in_millions)
+})
+output$season <- renderPlot({
+ CREDIT %>% 
+    gg_subseries(credit_in_millions)
+})
 
+  
+
+
+}
 shinyApp(ui, server)
