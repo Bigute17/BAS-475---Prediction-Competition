@@ -16,12 +16,15 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem('Plotted Series and Seasonality', tabName = 'AutoSeasonDecomp', icon = icon("dashboard")),
-      menuItem('First Model', tabName = 'FirstModel', icon = icon('th'))
+      menuItem('ARIMA Model', tabName = 'ARIMAModel', icon = icon('th')),
+      menuItem('Linear Model', tabName = 'LinearModel', icon = icon('th')),
+      menuItem('Exponential Smoothing', tabName = 'ETSModel', icon = icon('th')),
+      menuItem('Neural Network', tabName = 'NNETModel', icon = icon('th'))
     )
   ),
   dashboardBody(
     tabItems(
-      # First tab content
+      # Autoplot/seasonality tab content
       tabItem(tabName = "AutoSeasonDecomp",
               fluidRow(
                 h2("The Empire's Monthly Income and the Seasonality of Galactic Credits"),
@@ -29,9 +32,29 @@ ui <- dashboardPage(
                 plotOutput("season")
               )
       ),
-      # Second tab content
-      tabItem(tabName = "FirstModel",
-              h2("First Model")
+      # ARIMA tab content
+      tabItem(tabName = "ARIMAModel",
+              fluidRow(
+                h2("ARIMA Model")
+              )
+      ),
+      # Linear Model tab content
+      tabItem(tabName = "LinearModel",
+              fluidRow(
+                h2("Linear Model")
+              )
+      ),
+      #ETS Model tab content
+      tabItem(tabName = "ETSModel",
+              fluidRow(
+                h2("ETS Model")
+              )
+      ),
+      #Neural network tab content
+      tabItem(tabName = "NNETModel",
+              fluidRow(
+              h2("NNET Model")
+              )
       )
     )
   )
