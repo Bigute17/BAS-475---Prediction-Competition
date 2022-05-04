@@ -53,6 +53,23 @@ arimarmse <- rmse(inv_box_cox(testarima$bc_credit_in_millions, lambda), arima_y_
 train <- head(CREDIT2, nrow(CREDIT2) - 12)
 test <- tail(CREDIT2, 12)
 
+# TSLM model
+fit <- CREDIT %>%
+  model(tslm=TSLM(bc_credit_in_millions~trend()))
+report(fit)
+
+fc_fit <- fit %>% 
+  forecast(h=12) %>% 
+  autoplot(CREDIT)
+y_pred1 <- fc_fit$.mean
+y_actual <- test$credit_in_millions
+
+rmse <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+
+
 #ETS model
 fitets <- train %>%
   model(ETS(credit_in_millions))
