@@ -96,7 +96,14 @@ ui <- dashboardPage(
       #Neural network tab content
       tabItem(tabName = "NNETModel",
               fluidRow(
-              h2("NNET Model")
+              h2("NNET Model"),
+              plotOutput("neural network"),
+              h3("Forecast From the Neural Network Model"),
+              plotOutput("neuralforecast"),
+              verbatimTextOutput("neuralreport"),
+              plotOutput("neuralresiduals"),
+              textOutput("neuralpredictions"),
+              textOutput("neuralrmse")
               )
       )
     )
@@ -126,5 +133,20 @@ output$arimaresiduals <- renderPlot({
 output$arimareport <- renderPrint({report(fitarima)})
 output$arimapredictions <- renderPrint({arima_y_pred})
 output$arimarmse <- renderPrint({arimarmse})
+
+
+output$neuralforecast <- renderPlot({
+  fitneural <- CREDIT %>%
+    model(NNETAR(bc_credit_in_millions))
+  fitneural %>%
+    forecast(h=12, times = 5) %>%
+    autoplot(CREDIT)})
+
 }
+
+
+
+
+
+
 shinyApp(ui, server)
