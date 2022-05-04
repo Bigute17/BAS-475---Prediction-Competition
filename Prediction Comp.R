@@ -22,7 +22,7 @@ test <- tail(CREDIT, 12)
 fit <- train %>% 
   stretch_tsibble(.init = 48, .step = 24) %>% 
   model(
-    arima = ARIMA(credit_in_millions, stepwise = FALSE, approx = FALSE),
+    arima = ARIMA(credit_in_millions),
     ets = ETS(credit_in_millions),
     tslm = TSLM(credit_in_millions~trend()+season())
   )
