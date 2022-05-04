@@ -5,11 +5,46 @@ library(shinyWidgets)
 library(plotly)
 library(fpp3)
 
+rmse <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
 CREDIT <- read.csv("credit.csv")
 CREDIT$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
 CREDIT$Month <- yearmonth(CREDIT$Month)
 CREDIT <- tsibble(CREDIT, index = Month)
 
+CREDIT2 <- read.csv("credit.csv")
+CREDIT2$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
+CREDIT2$Month <- yearmonth(CREDIT$Month)
+CREDIT2 <- tsibble(CREDIT, index = Month)
+
+#box_cox / differencing
+lambda <- CREDIT %>% 
+  features(credit_in_millions, features = guerrero) %>% 
+  pull(lambda_guerrero)
+
+CREDIT <- CREDIT %>% 
+  mutate(bc_credit_in_millions = box_cox(credit_in_millions, lambda)) %>% 
+  mutate(bc_credit_in_millions = difference(bc_credit_in_millions,12)) %>% 
+  mutate(bc_credit_in_millions = difference(bc_credit_in_millions))
+
+#train and test
+trainarima <- head(CREDIT, nrow(CREDIT) - 12)
+testarima <- tail(CREDIT, 12)
+
+#Model
+fitarima <- trainarima %>% 
+  model(ARIMA(bc_credit_in_millions))
+
+report(fitarima)
+
+#ARIMA Predictions
+arimapred <- fitarima %>% 
+  forecast(testarima)
+
+arima_y_pred <- inv_box_cox(arimapred$.mean, lambda)
+arimarmse <- rmse(inv_box_cox(testarima$bc_credit_in_millions, lambda), arima_y_pred)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Galactic Credits"),
@@ -35,7 +70,12 @@ ui <- dashboardPage(
       # ARIMA tab content
       tabItem(tabName = "ARIMAModel",
               fluidRow(
-                h2("ARIMA Model")
+                h3("Stationary Credit Data"),
+                plotOutput("stationary"),
+                h3("Forecast From the ARIMA Model"),
+                plotOutput("arimaforecast"),
+                h3("Our Model's Residuals"),
+                plotOutput("arimaresiduals")
               )
       ),
       # Linear Model tab content
@@ -69,8 +109,17 @@ output$season <- renderPlot({
  CREDIT %>% 
     gg_subseries(credit_in_millions)
 })
-
-  
+output$stationary <- renderPlot({
+    gg_tsdisplay(CREDIT, bc_credit_in_millions, plot_type = 'partial')
+})
+output$arimaforecast <- renderPlot({
+  fitarima %>%
+    forecast(h=12) %>%
+    autoplot(CREDIT)
+})
+output$arimaresiduals <- renderPlot({
+  gg_tsresiduals(fitarima)
+})
 
 
 }

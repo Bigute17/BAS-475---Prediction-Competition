@@ -47,26 +47,24 @@ CREDIT %>%
 
 #Transformations don't seem to fix the nonconstant variance
 
-#ARIMA Testing
+  
+#Train and Test
+train <- head(CREDIT, nrow(CREDIT) - 12)
+test <- tail(CREDIT, 12)
 
-CREDIT2 <- read.csv("credit.csv")
-CREDIT2$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
-CREDIT2$Month <- yearmonth(CREDIT2$Month)
-CREDIT2 <- tsibble(CREDIT2, index = Month)
-#Make it stationary
-CREDIT2 <- CREDIT2 %>% 
-  mutate(credit_in_millions = sqrt(credit_in_millions)) %>% 
-  mutate(credit_in_millions = difference(credit_in_millions,12)) 
-
-gg_tsdisplay(CREDIT2, plot_type = 'partial')
-#ARIMA MODEL
-fit <- CREDIT2 %>% 
-  model(ARIMA(credit_in_millions))
-
-report(fit)
+#Cross-validation
+fit <- train %>% 
+  stretch_tsibble(.init = 48, .step = 24) %>% 
+  model(
+    tslm = TSLM(credit_in_millions~trend() + season()),
+    arima = ARIMA(credit_in_millions),
+    ets = ETS(credit_in_millions),
+    nnet = NNETAR(credit_in_millions)
+  )
 
 fit %>% 
-  forecast(h = 10) %>% 
-  autoplot(CREDIT2)
+  forecast(h=12) %>% 
+  accuracy(train) %>% 
+  arrange(RMSE)
 
-gg_tsresiduals(fit)
+
