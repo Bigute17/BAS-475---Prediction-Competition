@@ -18,6 +18,8 @@ CREDIT2 <- read.csv("credit.csv")
 CREDIT2$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
 CREDIT2$Month <- yearmonth(CREDIT$Month)
 CREDIT2 <- tsibble(CREDIT, index = Month)
+names(CREDIT) <- c("credit_in_millions", "Month")
+names(CREDIT2) <- c("credit_in_millions", "Month")
 
 #box_cox / differencing
 lambda <- CREDIT %>% 
@@ -39,6 +41,7 @@ fitarima <- trainarima %>%
 
 report(fitarima)
 
+
 #ARIMA Predictions
 arimapred <- fitarima %>% 
   forecast(testarima)
@@ -46,6 +49,41 @@ arimapred <- fitarima %>%
 arima_y_pred <- inv_box_cox(arimapred$.mean, lambda)
 arimarmse <- rmse(inv_box_cox(testarima$bc_credit_in_millions, lambda), arima_y_pred)
 
+#Train and Test 2
+train <- head(CREDIT2, nrow(CREDIT2) - 12)
+test <- tail(CREDIT2, 12)
+
+# TSLM model
+fit <- CREDIT %>%
+  model(tslm=TSLM(bc_credit_in_millions~trend()))
+report(fit)
+
+fc_fit <- fit %>% 
+  forecast(h=12) %>% 
+  autoplot(CREDIT)
+y_pred1 <- fc_fit$.mean
+y_actual <- test$credit_in_millions
+
+rmse <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+
+
+#ETS model
+fitets <- train %>%
+  model(ETS(credit_in_millions))
+
+report(fitets)
+
+#ETS predictions
+etspred <- fitets %>%
+  forecast(test)
+  
+y_actual <- test$credit_in_millions
+ets_y_pred <- etspred$.mean 
+etsrmse <- rmse(test$credit_in_millions, ets_y_pred)
+  
 ui <- dashboardPage(
   dashboardHeader(title = "Galactic Credits"),
   dashboardSidebar(
@@ -90,7 +128,14 @@ ui <- dashboardPage(
       #ETS Model tab content
       tabItem(tabName = "ETSModel",
               fluidRow(
-                h2("ETS Model")
+                h2("ETS Model"),
+                h3("Forecast From the ETS Model"),
+                plotOutput("etsforecast"),
+                verbatimTextOutput("etsreport"),
+                h3("Our Model's Residuals"),
+                plotOutput("etsresiduals"),
+                textOutput("etspredictions"),
+                textOutput("etsrmse")
               )
       ),
       #Neural network tab content
@@ -133,14 +178,6 @@ output$arimaresiduals <- renderPlot({
 output$arimareport <- renderPrint({report(fitarima)})
 output$arimapredictions <- renderPrint({arima_y_pred})
 output$arimarmse <- renderPrint({arimarmse})
-
-
-output$neuralforecast <- renderPlot({
-  fitneural <- CREDIT %>%
-    model(NNETAR(bc_credit_in_millions))
-  fitneural %>%
-    forecast(h=12, times = 6) %>%
-    autoplot(CREDIT)})
 
 }
 
