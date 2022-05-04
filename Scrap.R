@@ -17,6 +17,7 @@ lambda <- CREDIT %>%
   features(credit_in_millions, features = guerrero) %>% 
   pull(lambda_guerrero)
 
+
 lambda
 
 CREDIT <- CREDIT %>% 
@@ -29,6 +30,7 @@ CREDIT %>%
 
 #train and test
 trainarima <- head(CREDIT, nrow(CREDIT) - 12)
+
 testarima <- tail(CREDIT, 12)
 
 #Model
@@ -40,6 +42,7 @@ report(fitarima)
 #ljung_box test - passed
 augment(fitarima) %>%
   features(.innov, ljung_box)
+
 
 fitarima %>%
   forecast(h=12) %>%
@@ -53,3 +56,4 @@ arimapred <- fitarima %>%
 
 arima_y_pred <- inv_box_cox(arimapred$.mean, lambda)
 arimarmse <- rmse(inv_box_cox(testarima$bc_credit_in_millions, lambda), arima_y_pred)
+
