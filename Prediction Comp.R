@@ -14,85 +14,46 @@ CREDIT$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
 CREDIT$Month <- yearmonth(CREDIT$Month)
 CREDIT <- tsibble(CREDIT, index = Month)
 
-CREDIT2 <- read.csv("credit.csv")
-CREDIT2$Month <- seq(as.Date('2021/12/1'), by = "-1 month", length.out = 492)
-CREDIT2$Month <- yearmonth(CREDIT$Month)
-CREDIT2 <- tsibble(CREDIT, index = Month)
-names(CREDIT) <- c("credit_in_millions", "Month")
-names(CREDIT2) <- c("credit_in_millions", "Month")
+#Train and Test 
+train <- head(CREDIT, nrow(CREDIT) - 12)
+test <- tail(CREDIT, 12)
 
-#box_cox / differencing
-lambda <- CREDIT %>% 
-  features(credit_in_millions, features = guerrero) %>% 
-  pull(lambda_guerrero)
+#Model Cross-Validation
+fit <- train %>% 
+  stretch_tsibble(.init = 48, .step = 24) %>% 
+  model(
+    arima = ARIMA(credit_in_millions, stepwise = FALSE, approx = FALSE),
+    ets = ETS(credit_in_millions),
+    tslm = TSLM(credit_in_millions~trend()+season())
+  )
 
-CREDIT <- CREDIT %>% 
-  mutate(bc_credit_in_millions = box_cox(credit_in_millions, lambda)) %>% 
-  mutate(bc_credit_in_millions = difference(bc_credit_in_millions,12)) %>% 
-  mutate(bc_credit_in_millions = difference(bc_credit_in_millions))
+fit %>% 
+  forecast(h=5) %>% 
+  accuracy(train) %>% 
+  arrange(RMSE)
 
-#train and test
-trainarima <- head(CREDIT, nrow(CREDIT) - 12)
-testarima <- tail(CREDIT, 12)
+#Final Model
+bestfit <- train %>% 
+  model(ARIMA(credit_in_millions))
 
-#Model
-fitarima <- trainarima %>% 
-  model(ARIMA(bc_credit_in_millions))
+report(bestfit)
 
-report(fitarima)
-
-
-#ARIMA Predictions
-arimapred <- fitarima %>% 
-  forecast(testarima)
-
-arima_y_pred <- inv_box_cox(arimapred$.mean, lambda)
-arimarmse <- rmse(inv_box_cox(testarima$bc_credit_in_millions, lambda), arima_y_pred)
-
-#Train and Test 2
-train <- head(CREDIT2, nrow(CREDIT2) - 12)
-test <- tail(CREDIT2, 12)
-
-# TSLM model
-fit <- CREDIT %>%
-  model(tslm=TSLM(bc_credit_in_millions~trend()))
-report(fit)
-
-fc_fit <- fit %>% 
-  forecast(h=12) %>% 
-  autoplot(CREDIT)
-y_pred1 <- fc_fit$.mean
-y_actual <- test$credit_in_millions
-
-rmse <- function(y_actual, y_pred) {
-  sqrt(mean((y_actual - y_pred)^2))
-}
-
-
-
-#ETS model
-fitets <- train %>%
-  model(ETS(credit_in_millions))
-
-report(fitets)
-
-#ETS predictions
-etspred <- fitets %>%
+#Predictions
+pred <- bestfit %>% 
   forecast(test)
-  
-y_actual <- test$credit_in_millions
-ets_y_pred <- etspred$.mean 
-etsrmse <- rmse(test$credit_in_millions, ets_y_pred)
-  
+
+y_pred <- pred$.mean
+
+finalrmse <- rmse(test$credit_in_millions, y_pred)
+
 ui <- dashboardPage(
   dashboardHeader(title = "Galactic Credits"),
   dashboardSidebar(
     sidebarMenu(
       menuItem('Plotted Series and Seasonality', tabName = 'AutoSeasonDecomp', icon = icon("dashboard")),
-      menuItem('ARIMA Model', tabName = 'ARIMAModel', icon = icon('th')),
-      menuItem('Linear Model', tabName = 'LinearModel', icon = icon('th')),
-      menuItem('Exponential Smoothing', tabName = 'ETSModel', icon = icon('th')),
-      menuItem('Neural Network', tabName = 'NNETModel', icon = icon('th'))
+      menuItem('Model Cross-Validation', tabName = 'MODELCV', icon = icon('th')),
+      menuItem('Final Model Evaluation', tabName = 'MODELEVAL', icon = icon('th')),
+      menuItem('Predictions For the Next 12 Months', tabName = '12monthpred', icon=icon('th'))
     )
   ),
   dashboardBody(
@@ -102,58 +63,38 @@ ui <- dashboardPage(
               fluidRow(
                 h2("The Empire's Monthly Income and the Seasonality of Galactic Credits"),
                 plotOutput("fullseries"),
-                plotOutput("season")
+                plotOutput("season"),
+                plotOutput("decomp")
               )
       ),
-      # ARIMA tab content
-      tabItem(tabName = "ARIMAModel",
+      # Model CV tab content
+      tabItem(tabName = "MODELCV",
               fluidRow(
-                h3("Stationary Credit Data"),
-                plotOutput("stationary"),
-                h3("Forecast From the ARIMA Model"),
-                plotOutput("arimaforecast"),
-                verbatimTextOutput("arimareport"),
-                h3("Our Model's Residuals"),
-                plotOutput("arimaresiduals"),
-                textOutput("arimapredictions"),
-                textOutput("arimarmse")
+                h3("Model Cross-Validation"),
+                tableOutput("CV")
               )
       ),
-      # Linear Model tab content
-      tabItem(tabName = "LinearModel",
+      # Final Model tab content
+      tabItem(tabName = "MODELEVAL",
               fluidRow(
-                h2("Linear Model")
+                h2("Final Model Evaluation"),
+                textOutput("bestmodel"),
+                plotOutput("residuals"),
+                textOutput("predictions"),
+                textOutput("last")
               )
       ),
-      #ETS Model tab content
-      tabItem(tabName = "ETSModel",
+      #Predictions tab content
+      tabItem(tabName = '12monthpred',
               fluidRow(
-                h2("ETS Model"),
-                h3("Forecast From the ETS Model"),
-                plotOutput("etsforecast"),
-                verbatimTextOutput("etsreport"),
-                h3("Our Model's Residuals"),
-                plotOutput("etsresiduals"),
-                textOutput("etspredictions"),
-                textOutput("etsrmse")
+                h3("12 Month Forecast"),
+                
               )
-      ),
-      #Neural network tab content
-      tabItem(tabName = "NNETModel",
-              fluidRow(
-              h2("NNET Model"),
-              plotOutput("neural network"),
-              h3("Forecast From the Neural Network Model"),
-              plotOutput("neuralforecast"),
-              verbatimTextOutput("neuralreport"),
-              plotOutput("neuralresiduals"),
-              textOutput("neuralpredictions"),
-              textOutput("neuralrmse")
               )
       )
     )
   )
-)
+
 
 server <- function(input, output) { 
 output$fullseries <- renderPlot({
@@ -164,22 +105,36 @@ output$season <- renderPlot({
  CREDIT %>% 
     gg_subseries(credit_in_millions)
 })
-output$stationary <- renderPlot({
-    gg_tsdisplay(CREDIT, bc_credit_in_millions, plot_type = 'partial')
+output$decomp <- renderPlot({
+  CREDIT %>% 
+    model(STL(credit_in_millions)) %>% 
+    components() %>% 
+    autoplot()
 })
-output$arimaforecast <- renderPlot({
-  fitarima %>%
-    forecast(h=12) %>%
+output$CV <- renderTable({
+  fit %>% 
+    forecast(h=5) %>% 
+    accuracy(train) %>% 
+    arrange(RMSE)
+})
+output$bestmodel <- renderPrint({
+  report(bestfit)
+})
+output$residuals <- renderPlot({
+  gg_tsresiduals(bestfit)
+})
+output$predictions <- renderPrint({y_pred})
+output$last <- renderPrint({
+  finalrmse
+})
+output$finalpredictionplot <- renderPlot({
+  bestfit %>% 
+    forecast(h=12) %>% 
     autoplot(CREDIT)
 })
-output$arimaresiduals <- renderPlot({
-  gg_tsresiduals(fitarima)
-})
-output$arimareport <- renderPrint({report(fitarima)})
-output$arimapredictions <- renderPrint({arima_y_pred})
-output$arimarmse <- renderPrint({arimarmse})
 
 }
+
 
 
 

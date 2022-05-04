@@ -1,70 +1,68 @@
-CREDIT <- read.csv("credit.csv")
+
+output$neuralforecast <- renderPlot({
+  fitneural <- CREDIT %>%
+    model(NNETAR(bc_credit_in_millions))
+  fitneural %>%
+    forecast(h=12, times = 6) %>%
+    autoplot(CREDIT)})
+
+  output$etsforecast <- renderPlot({
+    fitets %>%
+      forecast(h=12) %>%
+      autoplot(CREDIT)
+  })
+output$etsresiduals <- renderPlot({
+  gg_tsresiduals(fitets)
+})
+output$etsreport <- renderPrint({report(fitets)})
+output$etspredictions <- renderPrint({ets_y_pred})
+output$etsrmse <- renderPrint({etsrmse})
 
 
-head(CREDIT, 3)
-summary(CREDIT$credit_in_millions)
-
-library(regclass)
-autoplot(CREDIT)
 
 
-CREDIT %>% 
-  gg_subseries()
+#ARIMA Model
+fitarima <- train %>% 
+  model(ARIMA(credit_in_millions, stepwise = FALSE, approx = FALSE))
+
+report(fitarima)
 
 
-CREDIT %>% 
-  model(STL(credit_in_millions)) %>% 
-  components() %>% 
-  autoplot()
+#ARIMA Predictions
+arimapred <- fitarima %>% 
+  forecast(test)
 
-lambda <- CREDIT %>% 
-  features(credit_in_millions, features = guerrero) %>% 
-  pull(lambda_guerrero)
-
-lambda
-
-CREDIT <- CREDIT %>% 
-  mutate(bc_credit_in_millions = box_cox(credit_in_millions, lambda))
-
-CREDIT %>% 
-  autoplot(bc_credit_in_millions)
-
-CREDIT %>% 
-  model(STL(bc_credit_in_millions)) %>% 
-  components() %>% 
-  autoplot()
-
-CREDIT <- CREDIT %>% 
-  mutate(log_credit_in_millions = log(credit_in_millions))
-
-CREDIT %>% 
-  autoplot(log_credit_in_millions)
-
-CREDIT %>% 
-  model(STL(log_credit_in_millions)) %>% 
-  components() %>% 
-  autoplot()
-
-#Transformations don't seem to fix the nonconstant variance
-
-  
-#Train and Test
-train <- head(CREDIT, nrow(CREDIT) - 12)
-test <- tail(CREDIT, 12)
-
-#Cross-validation
-fit <- train %>% 
-  stretch_tsibble(.init = 48, .step = 24) %>% 
-  model(
-    tslm = TSLM(credit_in_millions~trend() + season()),
-    arima = ARIMA(credit_in_millions),
-    ets = ETS(credit_in_millions),
-    nnet = NNETAR(credit_in_millions)
-  )
-
-fit %>% 
-  forecast(h=12) %>% 
-  accuracy(train) %>% 
-  arrange(RMSE)
+arima_y_pred <- arimapred$.mean
+arimarmse <- rmse(test$credit_in_millions, arima_y_pred)
 
 
+# TSLM model
+tslmfit <- CREDIT %>%
+  model(tslm=TSLM(credit_in_millions~trend() + season()))
+
+report(tslmfit)
+
+#tslm predictions
+tslmpred <- tslmfit %>% 
+  forecast(test) 
+
+tslm_y_pred <- tslmpred$.mean
+tslmrmse <- rmse(test$credit_in_millions, tslm_y_pred)
+
+#ETS model
+fitets <- train %>%
+  model(ETS(credit_in_millions))
+
+report(fitets)
+
+#ETS predictions
+etspred <- fitets %>%
+  forecast(test)
+
+ets_y_pred <- etspred$.mean 
+etsrmse <- rmse(test$credit_in_millions, ets_y_pred)
+
+#NNET model
+fitneural <- CREDIT %>%
+  model(NNETAR(credit_in_millions))
+report(fitneural)
