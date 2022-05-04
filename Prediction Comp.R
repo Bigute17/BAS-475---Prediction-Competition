@@ -141,7 +141,14 @@ ui <- dashboardPage(
       #Neural network tab content
       tabItem(tabName = "NNETModel",
               fluidRow(
-              h2("NNET Model")
+              h2("NNET Model"),
+              plotOutput("neural network"),
+              h3("Forecast From the Neural Network Model"),
+              plotOutput("neuralforecast"),
+              verbatimTextOutput("neuralreport"),
+              plotOutput("neuralresiduals"),
+              textOutput("neuralpredictions"),
+              textOutput("neuralrmse")
               )
       )
     )
@@ -172,16 +179,11 @@ output$arimareport <- renderPrint({report(fitarima)})
 output$arimapredictions <- renderPrint({arima_y_pred})
 output$arimarmse <- renderPrint({arimarmse})
 
-output$etsforecast <- renderPlot({
-  fitets %>%
-    forecast(h=12) %>%
-    autoplot(CREDIT)
-})
-output$etsresiduals <- renderPlot({
-  gg_tsresiduals(fitets)
-})
-output$etsreport <- renderPrint({report(fitets)})
-output$etspredictions <- renderPrint({ets_y_pred})
-output$etsrmse <- renderPrint({etsrmse})
 }
+
+
+
+
+
+
 shinyApp(ui, server)
