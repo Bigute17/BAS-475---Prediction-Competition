@@ -139,7 +139,7 @@ output$neuralforecast <- renderPlot({
   fitneural <- CREDIT %>%
     model(NNETAR(bc_credit_in_millions))
   fitneural %>%
-    forecast(h=12, times = 6) %>%
+    forecast(h=12, times = 5) %>%
     autoplot(CREDIT)})
 
 }
