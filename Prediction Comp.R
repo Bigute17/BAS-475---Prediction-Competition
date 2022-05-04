@@ -74,8 +74,11 @@ ui <- dashboardPage(
                 plotOutput("stationary"),
                 h3("Forecast From the ARIMA Model"),
                 plotOutput("arimaforecast"),
+                verbatimTextOutput("arimareport"),
                 h3("Our Model's Residuals"),
-                plotOutput("arimaresiduals")
+                plotOutput("arimaresiduals"),
+                textOutput("arimapredictions"),
+                textOutput("arimarmse")
               )
       ),
       # Linear Model tab content
@@ -120,7 +123,8 @@ output$arimaforecast <- renderPlot({
 output$arimaresiduals <- renderPlot({
   gg_tsresiduals(fitarima)
 })
-
-
+output$arimareport <- renderPrint({report(fitarima)})
+output$arimapredictions <- renderPrint({arima_y_pred})
+output$arimarmse <- renderPrint({arimarmse})
 }
 shinyApp(ui, server)
