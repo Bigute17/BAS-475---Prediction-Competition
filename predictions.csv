@@ -1,0 +1,13 @@
+"",".model","Month","credit_in_millions",".mean"
+"1","ARIMA(credit_in_millions)",2022 Jan,N(1.8, 0.037),1.83738648810267
+"2","ARIMA(credit_in_millions)",2022 Feb,N(1.8, 0.04),1.83738648810267
+"3","ARIMA(credit_in_millions)",2022 Mar,N(1.8, 0.042),1.83738648810267
+"4","ARIMA(credit_in_millions)",2022 Apr,N(1.8, 0.044),1.83738648810267
+"5","ARIMA(credit_in_millions)",2022 May,N(1.8, 0.047),1.83738648810267
+"6","ARIMA(credit_in_millions)",2022 Jun,N(1.8, 0.049),1.83738648810267
+"7","ARIMA(credit_in_millions)",2022 Jul,N(1.8, 0.052),1.83738648810267
+"8","ARIMA(credit_in_millions)",2022 Aug,N(1.8, 0.054),1.83738648810267
+"9","ARIMA(credit_in_millions)",2022 Sep,N(1.8, 0.056),1.83738648810267
+"10","ARIMA(credit_in_millions)",2022 Oct,N(1.8, 0.059),1.83738648810267
+"11","ARIMA(credit_in_millions)",2022 Nov,N(1.8, 0.061),1.83738648810267
+"12","ARIMA(credit_in_millions)",2022 Dec,N(1.8, 0.064),1.83738648810267

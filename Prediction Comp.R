@@ -46,6 +46,11 @@ y_pred <- pred$.mean
 
 finalrmse <- rmse(test$credit_in_millions, y_pred)
 
+finalpreds <- bestfit %>% 
+  forecast(h=24)
+
+
+
 ui <- dashboardPage(
   dashboardHeader(title = "Galactic Credits"),
   dashboardSidebar(
@@ -88,7 +93,8 @@ ui <- dashboardPage(
       tabItem(tabName = '12monthpred',
               fluidRow(
                 h3("12 Month Forecast"),
-                
+                verbatimTextOutput("final12months"),
+                plotOutput("finalpredictionplot")
               )
               )
       )
@@ -129,10 +135,12 @@ output$last <- renderPrint({
 })
 output$finalpredictionplot <- renderPlot({
   bestfit %>% 
-    forecast(h=12) %>% 
+    forecast(h=24) %>% 
     autoplot(CREDIT)
 })
-
+output$final12months <- renderPrint({
+  finalpreds[13:24,]
+})
 }
 
 
